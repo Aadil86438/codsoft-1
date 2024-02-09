@@ -1,76 +1,52 @@
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Scanner;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import org.json.JSONObject;
 
 public class CurrencyConverter {
 
-    public static void main(String[] args) {
-        String apiKey = "YOUR_API_KEY"; // Replace with your ExchangeRate-API key
-        String baseCurrency = "USD";
-        String targetCurrency = "EUR";
+    public static void Main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
 
+        // Get input from user
+        System.out.print("Enter the base currency (e.g., USD): ");
+        String baseCurrency = scanner.nextLine().toUpperCase();
+        System.out.print("Enter the target currency (e.g., EUR): ");
+        String targetCurrency = scanner.nextLine().toUpperCase();
+        System.out.print("Enter the amount to convert: ");
+        double amount = scanner.nextDouble();
+
+        // Call API to get real-time exchange rates
         try {
-            double exchangeRate = getExchangeRate(apiKey, baseCurrency, targetCurrency);
-            System.out.println("Exchange rate from " + baseCurrency + " to " + targetCurrency + ": " + exchangeRate);
-        } catch (Exception e) {
+            URL url = new URL("https://api.exchangerate-api.com/v4/latest/" + baseCurrency);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                // Parse JSON response
+                JSONObject jsonResponse = new JSONObject(response.toString());
+                double exchangeRate = jsonResponse.getJSONObject("rates").getDouble(targetCurrency);
+                double convertedAmount = amount * exchangeRate;
+                
+                // Display the converted amount
+                System.out.println(amount + " " + baseCurrency + " is equal to " + convertedAmount + " " + targetCurrency);
+            } else {
+                System.out.println("Error in fetching exchange rates. Response Code: " + responseCode);
+            }
+            connection.disconnect();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
-    private static double getExchangeRate(String apiKey, String baseCurrency, String targetCurrency) throws Exception {
-        String apiUrl = "https://open.er-api.com/v6/latest/" + baseCurrency + "?apikey=" + apiKey;
-
-        HttpClient httpClient = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(apiUrl))
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() == 200) {
-            String responseBody = response.body();
-            // Parse the JSON response and extract the exchange rate for the target currency
-            // Here, you may use a JSON library like Jackson or Gson for better handling
-            // For simplicity, we'll use substring-based extraction in this example
-            int targetCurrencyIndex = responseBody.indexOf("\"" + targetCurrency + "\":");
-            int endIndex = responseBody.indexOf(",", targetCurrencyIndex);
-            String rateSubstring = responseBody.substring(targetCurrencyIndex, endIndex);
-
-            // Extract the exchange rate value
-            String[] parts = rateSubstring.split(":");
-            return Double.parseDouble(parts[1].trim());
-        } else {
-            throw new RuntimeException("Failed to fetch exchange rates. Status code: " + response.statusCode());
-        }
-    }
-}
-
-class getcurrency
-{
-    String basecur;
-    String convcur;
-    public void getcur()
-    {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Enter the base currency:");
-        basecur =sc.nextLine();
-        System.out.println("");
-        System.out.println("Enter the CURRENCY converted to:");
-        convcur = sc.nextLine();
-    }
-}
-
-
-
-
-public class Main
-{
-	public static void main(String[] args) {
-		System.out.println("Hello World");
-		getcurrency gc = new getcurrency();
-		gc.getcur();
-	}
 }
